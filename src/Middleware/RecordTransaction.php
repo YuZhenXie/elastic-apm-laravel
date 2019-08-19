@@ -5,10 +5,15 @@ namespace PhilKra\ElasticApmLaravel\Middleware;
 use Closure;
 use Illuminate\Support\Facades\Log;
 use PhilKra\Agent;
+use PhilKra\Exception\InvalidTraceContextHeaderException;
 use PhilKra\Helper\Timer;
+use PhilKra\TraceParent;
 
 class RecordTransaction
 {
+    const SPAN_ID_SIZE = 64;
+    const TRACE_ID_SIZE = 128;
+
     /**
      * @var \PhilKra\Agent
      */
@@ -40,6 +45,24 @@ class RecordTransaction
             $this->getTransactionName($request)
         );
 
+        $traceparentHeader = $request->headers->get(TraceParent::HEADER_NAME, null, true);
+
+        if ($traceparentHeader !== null) {
+            try {
+                $traceParent = TraceParent::createFromHeader($traceparentHeader);
+                $transaction->setTraceId($traceParent->getTraceId());
+                $transaction->setParentId($traceParent->getSpanId());
+            } catch (InvalidTraceContextHeaderException $e) {
+                $transaction->setTraceId(self::generateRandomBitsInHex(self::TRACE_ID_SIZE));
+            }
+        } else {
+            $transaction->setTraceId(self::generateRandomBitsInHex(self::TRACE_ID_SIZE));
+        }
+
+        Request::macro('__apm__', function() use($transaction) {
+            return $transaction;
+        });
+
         // await the outcome
         $response = $next($request);
 
@@ -50,10 +73,11 @@ class RecordTransaction
             'headers' => $this->formatHeaders($response->headers->all()),
         ]);
 
-        $transaction->setUserContext([
-            'id' => optional($request->user())->id,
-            'email' => optional($request->user())->email,
-        ]);
+        // Need to fix !!
+//        $transaction->setUserContext([
+//            'id' => optional($request->user())->id,
+//            'email' => optional($request->user())->email,
+//        ]);
 
         $transaction->setMeta([
             'result' => $response->getStatusCode(),
@@ -132,5 +156,10 @@ class RecordTransaction
         return collect($headers)->map(function ($values, $header) {
             return head($values);
         })->toArray();
+    }
+
+    public static function generateRandomBitsInHex(int $bits): string
+    {
+        return bin2hex(random_bytes($bits/8));
     }
 }
