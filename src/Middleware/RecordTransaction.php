@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Log;
 use PhilKra\Agent;
 use PhilKra\Exception\InvalidTraceContextHeaderException;
 use PhilKra\Helper\Timer;
+use Illuminate\Http\Request;
 use PhilKra\TraceParent;
 
 class RecordTransaction
@@ -118,7 +119,7 @@ class RecordTransaction
      *
      * @return string
      */
-    protected function getTransactionName(\Illuminate\Http\Request $request): string
+    protected function getTransactionName(Request $request): string
     {
         // fix leading /
         $path = ($request->server->get('REQUEST_URI') == '') ? '/' : $request->server->get('REQUEST_URI');
@@ -135,7 +136,7 @@ class RecordTransaction
      *
      * @return string
      */
-    protected function getRouteUriTransactionName(\Illuminate\Http\Request $request): string
+    protected function getRouteUriTransactionName(Request $request): string
     {
         $path = ($request->path() === '/') ? '' : $request->path();
 
