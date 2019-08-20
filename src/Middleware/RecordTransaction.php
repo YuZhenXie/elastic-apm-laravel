@@ -54,9 +54,11 @@ class RecordTransaction
                 $transaction->setTraceId($traceParent->getTraceId());
                 $transaction->setParentId($traceParent->getSpanId());
             } catch (InvalidTraceContextHeaderException $e) {
+                $transaction->setId(self::generateRandomBitsInHex(self::SPAN_ID_SIZE));
                 $transaction->setTraceId(self::generateRandomBitsInHex(self::TRACE_ID_SIZE));
             }
         } else {
+            $transaction->setId(self::generateRandomBitsInHex(self::SPAN_ID_SIZE));
             $transaction->setTraceId(self::generateRandomBitsInHex(self::TRACE_ID_SIZE));
         }
 
