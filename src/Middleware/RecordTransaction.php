@@ -5,6 +5,7 @@ namespace PhilKra\ElasticApmLaravel\Middleware;
 use Closure;
 use Illuminate\Support\Facades\Log;
 use PhilKra\Agent;
+use PhilKra\Events\EventBean;
 use PhilKra\Exception\InvalidTraceContextHeaderException;
 use PhilKra\Helper\Timer;
 use Illuminate\Http\Request;
@@ -12,9 +13,6 @@ use PhilKra\TraceParent;
 
 class RecordTransaction
 {
-    const SPAN_ID_SIZE = 64;
-    const TRACE_ID_SIZE = 128;
-
     /**
      * @var \PhilKra\Agent
      */
@@ -27,6 +25,7 @@ class RecordTransaction
     /**
      * RecordTransaction constructor.
      * @param Agent $agent
+     * @param Timer $timer
      */
     public function __construct(Agent $agent, Timer $timer)
     {
@@ -38,7 +37,9 @@ class RecordTransaction
      * [handle description]
      * @param  Request $request [description]
      * @param  Closure $next [description]
-     * @return [type]           [description]
+     * @return mixed [type]           [description]
+     * @throws \PhilKra\Exception\Timer\NotStartedException
+     * @throws \PhilKra\Exception\Transaction\DuplicateTransactionNameException
      */
     public function handle($request, Closure $next)
     {
@@ -46,20 +47,18 @@ class RecordTransaction
             $this->getTransactionName($request)
         );
 
-        $traceparentHeader = $request->headers->get(TraceParent::HEADER_NAME, null, true);
+        $traceParentHeader = $request->headers->get(TraceParent::HEADER_NAME, null, true);
 
-        if ($traceparentHeader !== null) {
+        if ($traceParentHeader !== null) {
             try {
-                $traceParent = TraceParent::createFromHeader($traceparentHeader);
+                $traceParent = TraceParent::createFromHeader($traceParentHeader);
                 $transaction->setTraceId($traceParent->getTraceId());
                 $transaction->setParentId($traceParent->getSpanId());
             } catch (InvalidTraceContextHeaderException $e) {
-                $transaction->setId(self::generateRandomBitsInHex(self::SPAN_ID_SIZE));
-                $transaction->setTraceId(self::generateRandomBitsInHex(self::TRACE_ID_SIZE));
+                $transaction->setTraceId(EventBean::generateRandomBitsInHex(EventBean::TRACE_ID_SIZE));
             }
         } else {
-            $transaction->setId(self::generateRandomBitsInHex(self::SPAN_ID_SIZE));
-            $transaction->setTraceId(self::generateRandomBitsInHex(self::TRACE_ID_SIZE));
+            $transaction->setTraceId(EventBean::generateRandomBitsInHex(EventBean::TRACE_ID_SIZE));
         }
 
         Request::macro('__apm__', function() use($transaction) {
@@ -159,10 +158,5 @@ class RecordTransaction
         return collect($headers)->map(function ($values, $header) {
             return head($values);
         })->toArray();
-    }
-
-    public static function generateRandomBitsInHex(int $bits): string
-    {
-        return bin2hex(random_bytes($bits/8));
     }
 }
