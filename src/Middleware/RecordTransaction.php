@@ -5,11 +5,8 @@ namespace PhilKra\ElasticApmLaravel\Middleware;
 use Closure;
 use Illuminate\Support\Facades\Log;
 use PhilKra\Agent;
-use PhilKra\Events\EventBean;
-use PhilKra\Exception\InvalidTraceContextHeaderException;
 use PhilKra\Helper\Timer;
 use Illuminate\Http\Request;
-use PhilKra\TraceParent;
 
 class RecordTransaction
 {
@@ -46,20 +43,6 @@ class RecordTransaction
         $transaction = $this->agent->startTransaction(
             $this->getTransactionName($request)
         );
-
-        $traceParentHeader = $request->headers->get(TraceParent::HEADER_NAME, null, true);
-
-        if ($traceParentHeader !== null) {
-            try {
-                $traceParent = TraceParent::createFromHeader($traceParentHeader);
-                $transaction->setTraceId($traceParent->getTraceId());
-                $transaction->setParentId($traceParent->getSpanId());
-            } catch (InvalidTraceContextHeaderException $e) {
-                $transaction->setTraceId(EventBean::generateRandomBitsInHex(EventBean::TRACE_ID_SIZE));
-            }
-        } else {
-            $transaction->setTraceId(EventBean::generateRandomBitsInHex(EventBean::TRACE_ID_SIZE));
-        }
 
         Request::macro('__apm__', function() use($transaction) {
             return $transaction;
