@@ -23,7 +23,7 @@
       "illuminate/routing":"5.5.x|5.6.x|5.7.x|5.8.x",
       "illuminate/support":"5.5.x|5.6.x|5.7.x|5.8.x",
       "ramsey/uuid":"^3.0",
-      "speakol-ads/elastic-apm-php-agent": "dev-v2-support"
+      "speakol-ads/elastic-apm-php-agent": "dev-distributed-tracing"
    },
    "require-dev":{  
       "phpunit/phpunit":"6.*"
