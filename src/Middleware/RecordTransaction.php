@@ -58,11 +58,10 @@ class RecordTransaction
             'headers' => $this->formatHeaders($response->headers->all()),
         ]);
 
-        // Need to fix !!
-//        $transaction->setUserContext([
-//            'id' => optional($request->user())->id,
-//            'email' => optional($request->user())->email,
-//        ]);
+        $transaction->setUserContext([
+            'id' => optional($request->user())->id,
+            'email' => optional($request->user())->email,
+        ]);
 
         $transaction->setMeta([
             'result' => $response->getStatusCode(),
