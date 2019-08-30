@@ -50,14 +50,16 @@ class RecordTransaction
             'headers' => $this->formatHeaders($response->headers->all()),
         ]);
 
-        $user = $request->user();
-        $transaction->setUserContext([
-            'id' => optional($user)->id,
-            'email' => optional($user)->email,
-            'username' => optional($user)->user_name,
-            'ip' => $request->ip(),
-            'user-agent' => $request->userAgent(),
-        ]);
+        if (app()->bound('auth.loaded')) {
+            $user = $request->user();
+            $transaction->setUserContext([
+                'id' => optional($user)->id,
+                'email' => optional($user)->email,
+                'username' => optional($user)->user_name,
+                'ip' => $request->ip(),
+                'user-agent' => $request->userAgent(),
+            ]);
+        }
 
         $transaction->setMeta([
             'result' => $response->getStatusCode(),
