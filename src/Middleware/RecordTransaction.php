@@ -44,10 +44,6 @@ class RecordTransaction
             $this->getTransactionName($request)
         );
 
-        Request::macro('__apm__', function() use($transaction) {
-            return $transaction;
-        });
-
         // await the outcome
         $response = $next($request);
 
