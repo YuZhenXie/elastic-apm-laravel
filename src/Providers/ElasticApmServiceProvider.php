@@ -9,6 +9,7 @@ use PhilKra\Agent;
 use PhilKra\ElasticApmLaravel\Apm\SpanCollection;
 use PhilKra\ElasticApmLaravel\Apm\Transaction;
 use PhilKra\ElasticApmLaravel\Contracts\VersionResolver;
+use PhilKra\ElasticApmLaravel\Facades\ElasticApm;
 use PhilKra\Helper\Timer;
 
 class ElasticApmServiceProvider extends ServiceProvider
@@ -180,24 +181,23 @@ class ElasticApmServiceProvider extends ServiceProvider
                 ];
             })->values();
 
-            $query = [
-                'name' => 'Eloquent Query',
-                'type' => 'db.mysql.query',
-                'start' => round((microtime(true) - $query->time / 1000 - $this->startTime) * 1000, 3),
-                // calculate start time from duration
-                'duration' => round($query->time, 3),
-                'stacktrace' => $stackTrace,
-                'context' => [
-                    'db' => [
-                        'instance' => $query->connection->getDatabaseName(),
-                        'statement' => (string) $query->sql,
-                        'type' => 'sql',
-                        'user' => $query->connection->getConfig('username'),
-                    ],
-                ],
-            ];
+            $span = ElasticApm::factory()->newSpan(
+                $query->connection->getDatabaseName(),
+                app('request')->__apm__()
+            );
+            $span->setType('db.mysql.query');
+            $span->setAction('query');
+            $span->setStackTrace($stackTrace->all());
+            $span->start();
+            $span->stop(round($query->time), 3);
+            $span->setContext(['db' => [
+                'instance' => $query->connection->getDatabaseName(),
+                'statement' => (string) $query->sql,
+                'type' => 'sql',
+                'user' => $query->connection->getConfig('username'),
+            ]]);
 
-            app('query-log')->push($query);
+            ElasticApm::putEvent($span);
         });
     }
 }
