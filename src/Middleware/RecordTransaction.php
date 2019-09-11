@@ -42,7 +42,6 @@ class RecordTransaction
     {
         $transactionName = $this->getTransactionName($request);
         $transaction = $this->agent->startTransaction($transactionName);
-
         putenv( 'ELASTIC_APM_REQUEST_TRANSACTION_NAME=' . $transactionName);
 
         // await the outcome
