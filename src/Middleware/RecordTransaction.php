@@ -40,13 +40,10 @@ class RecordTransaction
      */
     public function handle($request, Closure $next)
     {
-        $transaction = $this->agent->startTransaction(
-            $this->getTransactionName($request)
-        );
+        $transactionName = $this->getTransactionName($request);
+        $transaction = $this->agent->startTransaction($transactionName);
 
-        Request::macro('__apm__', function() use($transaction) {
-            return $transaction;
-        });
+        putenv( 'ELASTIC_APM_REQUEST_TRANSACTION_NAME=' . $transactionName);
 
         // await the outcome
         $response = $next($request);

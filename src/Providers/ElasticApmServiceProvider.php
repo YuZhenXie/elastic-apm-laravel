@@ -181,9 +181,10 @@ class ElasticApmServiceProvider extends ServiceProvider
                 ];
             })->values();
 
+            $parentTransaction = ElasticApm::getTransaction(env('ELASTIC_APM_REQUEST_TRANSACTION_NAME'));
             $span = ElasticApm::factory()->newSpan(
                 $query->connection->getDatabaseName(),
-                app('request')->__apm__()
+                $parentTransaction
             );
             $span->setType('db.mysql.query');
             $span->setAction('query');
